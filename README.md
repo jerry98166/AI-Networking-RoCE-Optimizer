@@ -44,6 +44,7 @@ RoCEv2_AI_Opt/
 5. [關鍵注意事項](#關鍵注意事項)
 6. [仿真驗證方法](#仿真驗證方法)
 7. [面試展示重點](#面試展示重點)
+8. [必讀書籍與完整知識地圖（針對本專題）](#-必讀書籍與完整知識地圖針對本專題)
 
 ---
 
@@ -1137,23 +1138,194 @@ RoCE應用中的推薦值：
 
 ---
 
-## 📚 學習資源推薦
+## 📚 必讀書籍與完整知識地圖（針對本專題）
 
-### 官方文檔
+本節是「面向 RoCE v2 + ECN + FPGA 實作 + 面試展示」的學習地圖。
+你可以把它當成最小閉環：
+1. 先懂協議與問題
+2. 再懂 RTL 與流控
+3. 再做仿真驗證與性能量化
+4. 最後轉成面試可講清楚的故事
+
+### 一、必看書籍（優先級 + 你要看的重點）
+
+#### A級（一定要看，直接影響你能不能把專題講清楚）
+
+1. 《Computer Networking: A Top-Down Approach》
+    你要看：
+    - 應用層/傳輸層/網路層/鏈路層的分工
+    - UDP 特性與為何 RoCE v2 使用 UDP over IPv4
+    - 擁塞控制基本觀念（延遲、丟包、吞吐量的關係）
+    為何必看：
+    - 面試官會先看你有沒有「網路系統觀」，而不只是會寫 Verilog。
+
+2. 《FPGA Prototyping by Verilog Examples (Pong P. Chu)》
+    你要看：
+    - 同步設計基本規則
+    - FSM 寫法（one-hot / binary 都要會解釋）
+    - FIFO、計數器、仲裁器
+    為何必看：
+    - 你的 `roce_ecn_marker`、`roce_header_parser`、優先級隊列模塊都靠這些基本功。
+
+3. 《Writing Testbenches: Functional Verification of HDL Models》
+    你要看：
+    - Testbench 結構與 stimulus/monitor/checker 分層
+    - directed test 與 corner case 思維
+    - 如何設計可重複驗證的測試案例
+    為何必看：
+    - 你專題價值不是「有程式」，而是「已被波形和數據證明」。
+
+#### B級（強烈建議，讓你回答深入問題）
+
+4. 《High-Speed Digital Design: A Handbook of Black Magic》
+    你要看：
+    - 時序、訊號完整性、時鐘品質對系統穩定性的影響
+    為何要看：
+    - 面試問到 FPGA 實作落地，這本讓你講得專業。
+
+5. 《Computer Architecture: A Quantitative Approach》
+    你要看：
+    - Latency vs Throughput 的量化方法
+    - pipeline 與 buffer 對效能的影響
+    為何要看：
+    - 你的 ECN/隊列優化要靠數據模型支撐，不是只靠直覺。
+
+6. 《TCP/IP Illustrated, Volume 1》
+    你要看：
+    - IPv4 header 欄位、DSCP/ECN 位元語義
+    - UDP header 與封包分析方法
+    為何要看：
+    - 你在 header parser 中抽欄位與改 ECN bits，要講得非常精準。
+
+#### C級（補強用，面試前有時間再看）
+
+7. 《Digital Design and Computer Architecture》
+    你要看：
+    - RTL 到系統整合的抽象層對應
+    - 組合路徑/時序路徑的分析思維
+
+8. 《Network Algorithmics》
+    你要看：
+    - Queue management、scheduler、流量控制策略
+    - 為什麼某些演算法在硬體上更可實現
+
+### 二、官方文件（一定要查）
+
+1. RoCE / InfiniBand Association 文檔（協議語義）
+2. RFC 3168（ECN 核心定義）
+3. Xilinx UG901（Synthesis）
+4. Xilinx UG903（Constraints）
+5. Xilinx UG900（Logic Simulation）
+6. AXI4-Stream Protocol Specification（握手與背壓）
+
+### 三、你專題必備知識點（完整清單）
+
+#### 1. 網路與協議基礎
+
+1. Ethernet frame 結構、Type 欄位意義
+2. IPv4 header：Version/IHL、ToS(DSCP/ECN)、Protocol、Checksum
+3. UDP header：source/destination port、length、checksum
+4. RoCE v2 封裝位置與 UDP 4791 的識別
+5. DSCP 與 ECN 的差異
+6. ECN 四種值：Not-ECT、ECT(0)、ECT(1)、CE
+7. 為何資料中心偏好「標記擁塞」而非「直接丟包」
+
+#### 2. RDMA / RoCE 觀念
+
+1. RDMA 核心價值：低 CPU 介入、低延遲、高吞吐
+2. RoCE v1 vs RoCE v2 的差異
+3. 為什麼 RoCE v2 能跨 L3 網段
+4. BTH/PSN 基本概念（即使你目前簡化，也要能解釋）
+5. AI 訓練流量型態（all-reduce、burst traffic）對網路的壓力
+
+#### 3. 擁塞控制與隊列管理
+
+1. Queue depth、head-of-line blocking
+2. 閾值型擁塞檢測（threshold-based ECN marking）
+3. 背壓（backpressure）在 AXI-Stream 中的映射
+4. 優先級隊列（strict priority）優缺點
+5. 飢餓問題（starvation）與改善思路（aging/WRR）
+6. 丟包率、隊列延遲、吞吐量的三角平衡
+
+#### 4. RTL / FPGA 設計核心
+
+1. 同步時序設計：`always @(posedge clk)` 與 reset 策略
+2. 組合邏輯與時序邏輯邊界
+3. FSM 設計與狀態轉移可視化
+4. FIFO 實現：full/empty/count、wr_ptr/rd_ptr
+5. 參數化設計（寬度、深度、閾值可調）
+6. 避免 latch、避免 combinational loop
+7. 可綜合寫法與模擬專用寫法的差異
+
+#### 5. AXI-Stream 實戰知識
+
+1. `tvalid && tready` 才算一次有效傳輸
+2. `tlast` 封包邊界語義
+3. `tkeep` 部分位元組有效標記
+4. 下游 `tready=0` 時上游必須穩定保持資料
+5. 背壓傳遞對整條管線的影響
+
+#### 6. Vivado 與約束
+
+1. 設計流程：elaborate -> synth -> impl -> bitstream
+2. XDC 必備：clock constraint、I/O standard、false path（如有）
+3. Timing closure 指標：WNS/TNS 基本判讀
+4. Simulation 與 Synthesis 結果差異排查
+5. 專案可重建思維（Tcl 腳本化）
+
+#### 7. 驗證方法學（你一定要具備）
+
+1. Directed test：最小正確性測試
+2. Corner case：空隊列、滿隊列、突發流量、連續背壓
+3. 壓力測試：長時間高流量下穩定性
+4. 自動檢查：scoreboard / assert 思路
+5. 波形觀察重點：握手、封包邊界、ECN 位變化、隊列深度
+6. 可重現性：同一測試可重跑得到一致結論
+
+#### 8. 性能分析與量化
+
+1. Latency 定義：封包進入到輸出可觀測事件的週期差
+2. Throughput 定義：單位時間有效輸出位元數
+3. Loss rate 定義：輸入與輸出計數比對
+4. 需要展示的圖：
+    - 吞吐量曲線
+    - 延遲分佈
+    - 隊列深度變化
+    - ECN 標記比例
+5. 對照組思維：
+    - 無 ECN / 有 ECN
+    - 無優先隊列 / 有優先隊列
+
+#### 9. 面試表達知識點（最後一定會被問）
+
+1. 為何選這題（AI 訓練網路痛點）
+2. 為何用 FPGA（低延遲、可程式化、硬體並行）
+3. 為何用 ECN（主動控制而非丟包重傳）
+4. 你如何定義「成功」：具體 KPI 與量測方法
+5. 你目前版本的限制與下一步改進（誠實且有路線圖）
+
+### 四、建議學習順序（最省時間版本）
+
+1. 先看協議：IPv4/UDP/ECN/RoCE 基礎
+2. 再看硬體：AXI-Stream + FIFO + FSM
+3. 再做驗證：testbench + 波形 + KPI 計算
+4. 最後做講解：把設計決策和數據串成 5 分鐘故事
+
+### 五、面試前必達成的「知識最小集合」
+
+1. 能畫出封包路徑：Parser -> ECN Marker -> Queue -> Flow Control -> Monitor
+2. 能解釋 ECN bits 何時從 ECT 變 CE
+3. 能說明 AXI-Stream 握手與背壓在你設計中的行為
+4. 能用數據回答：延遲、吞吐量、丟包率如何量測
+5. 能指出你版本的兩個限制與兩個可行改進
+
+### 六、快速資源連結（查資料用）
+
 - [RoCE Specification (IBTA)](https://www.infinibandta.org/)
-- [IEEE 802.3 (以太網標準)](https://standards.ieee.org/)
+- [RFC 3168 - ECN](https://datatracker.ietf.org/doc/html/rfc3168)
+- [IEEE 802.3 (Ethernet)](https://standards.ieee.org/)
+- [Xilinx Documentation Hub](https://www.xilinx.com/support/documentation.html)
 - [Xilinx AXI Stream Protocol](https://www.xilinx.com/support/documentation.html)
-- [Vivado Design Suite User Guide](https://www.xilinx.com/support/documentation.html)
-
-### 推薦書籍
-- 《Verilog HDL高級設計製程》- 周立功
-- 《深入淺出：FPGA芯片設計與驗證》 - 余偉祥
-- 《數據中心網路》- 吳功宜
-
-### 在線資源
-- Xilinx Learning Hub
-- Intel/Altera FPGA教程
-- EEVblog FPGA設計系列
 
 ---
 
