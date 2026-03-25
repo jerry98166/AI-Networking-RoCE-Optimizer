@@ -1,0 +1,33 @@
+# Vivado generated files
+*.jou
+*.log
+*.str
+*.pb
+*.wdb
+*.wcfg
+*.xsim
+xsim.dir/
+*.vcd
+
+# Project-generated directories (rebuildable)
+RoCEv2_AI_Opt.cache/
+RoCEv2_AI_Opt.hw/
+RoCEv2_AI_Opt.ip_user_files/
+RoCEv2_AI_Opt.sim/
+RoCEv2_AI_Opt.srcs/
+.Xil/
+*.gen/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Keep source and docs in GitHub layout
+!src/
+!sim/
+!cons/
+!doc/
+!README.md
+!RoCEv2_AI_Opt.xpr
